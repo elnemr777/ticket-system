@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الصفحة الرئيسية - MTA Support</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/main.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🎮</span>
+                <h1>MTA Support</h1>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar">
+                    <div class="avatar-placeholder" id="userAvatar">U</div>
+                </div>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Loading...</span>
+                    <span class="user-type" id="loginType">Loading...</span>
+                </div>
+                <a href="../auth/logout.php" class="logout-btn">تسجيل خروج</a>
+            </div>
+        </header>
+
+        <!-- Welcome Section -->
+        <section class="welcome-section">
+            <div class="welcome-content">
+                <h2 id="welcomeText">مرحباً! 👋</h2>
+                <p>كيف يمكننا مساعدتك اليوم؟</p>
+            </div>
+            <div class="stats-mini">
+                <div class="stat-item">
+                    <span class="stat-number" id="totalTickets">0</span>
+                    <span class="stat-label">إجمالي التذاكر</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="activeTickets">0</span>
+                    <span class="stat-label">تذاكر نشطة</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Actions -->
+        <section class="main-actions">
+            <a href="new-ticket.html" class="action-card primary">
+                <div class="action-icon">📝</div>
+                <div class="action-content">
+                    <h3>فتح تذكرة جديدة</h3>
+                    <p>هل لديك مشكلة أو استفسار؟ أنشئ تذكرة دعم جديدة</p>
+                </div>
+                <div class="action-arrow">←</div>
+            </a>
+
+            <a href="my-tickets.html" class="action-card secondary">
+                <div class="action-icon">📋</div>
+                <div class="action-content">
+                    <h3>عرض تذاكري</h3>
+                    <p>تابع حالة تذاكرك السابقة وردود الإدارة</p>
+                </div>
+                <div class="action-arrow">←</div>
+            </a>
+
+            <a href="admin-dashboard.html" class="action-card admin" id="adminCard" style="display: none;">
+                <div class="action-icon">⚙️</div>
+                <div class="action-content">
+                    <h3>لوحة الإدارة</h3>
+                    <p>إدارة جميع التذاكر والمستخدمين</p>
+                </div>
+                <div class="action-arrow">←</div>
+            </a>
+        </section>
+
+        <!-- Quick Info -->
+        <section class="quick-info">
+            <div class="info-card">
+                <div class="info-icon">⏱️</div>
+                <div class="info-content">
+                    <h4>وقت الاستجابة</h4>
+                    <p>نرد على التذاكر خلال 24 ساعة في المتوسط</p>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="info-icon">💬</div>
+                <div class="info-content">
+                    <h4>الدعم المباشر</h4>
+                    <p>تواصل مع الإدارة مباشرة عبر التذاكر</p>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="info-icon">🔒</div>
+                <div class="info-content">
+                    <h4>خصوصية آمنة</h4>
+                    <p>جميع بياناتك محمية ومشفرة بأمان</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>© 2024 MTA Support System - جميع الحقوق محفوظة</p>
+        </footer>
+    </div>
+
+    <script>
+        // جلب بيانات المستخدم من API
+        async function loadUserData() {
+            try {
+                const response = await fetch('../api/user/get-info.php');
+                const data = await response.json();
+
+                if (data.success) {
+                    const user = data.user;
+
+                    // تحديث الاسم
+                    document.getElementById('userName').textContent = user.username;
+                    document.getElementById('welcomeText').textContent = `مرحباً، ${user.username}! 👋`;
+
+                    // تحديث نوع تسجيل الدخول
+                    if (user.discord_id) {
+                        document.getElementById('loginType').textContent = 'Discord';
+                        
+                        // عرض صورة Discord
+                        if (user.discord_avatar) {
+                            const avatarDiv = document.getElementById('userAvatar');
+                            avatarDiv.innerHTML = `<img src="https://cdn.discordapp.com/avatars/${user.discord_id}/${user.discord_avatar}.png" 
+                                                        alt="Avatar" 
+                                                        onerror="this.parentElement.innerHTML='${user.username.charAt(0)}'">`;
+                        }
+                    } else {
+                        document.getElementById('loginType').textContent = 'In-Game Account';
+                        document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+                    }
+
+                    // تحديث الإحصائيات
+                    document.getElementById('totalTickets').textContent = user.total_tickets || 0;
+                    document.getElementById('activeTickets').textContent = user.active_tickets || 0;
+
+                    // إظهار لوحة الإدارة للـ Admin
+                    if (user.role === 'admin') {
+                        document.getElementById('adminCard').style.display = 'flex';
+                    }
+
+                } else {
+                    // لو مش مسجل دخول - توجيه للـ Login
+                    window.location.href = '../login.php';
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                // في حالة الخطأ - توجيه للـ Login
+                window.location.href = '../login.php';
+            }
+        }
+
+        // تحميل البيانات عند فتح الصفحة
+        loadUserData();
+    </script>
+</body>
+</html>
