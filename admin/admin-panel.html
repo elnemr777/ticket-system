@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الإدارة - MTA Support</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/admin-panel.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <a href="../pages/main.html" class="logo-link">
+                    <span class="logo-icon">🛡️</span>
+                    <h1>MTA Admin Panel</h1>
+                </a>
+            </div>
+            <div class="header-actions">
+                <a href="../pages/main.html" class="nav-btn">الرئيسية</a>
+                <span class="admin-name" id="adminName">Admin</span>
+                <a href="../auth/logout.php" class="nav-btn logout">خروج</a>
+            </div>
+        </header>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card total">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <span class="stat-number" id="totalCount">0</span>
+                    <span class="stat-label">إجمالي التذاكر</span>
+                </div>
+            </div>
+            <div class="stat-card open">
+                <div class="stat-icon">🟡</div>
+                <div class="stat-content">
+                    <span class="stat-number" id="openCount">0</span>
+                    <span class="stat-label">مفتوحة</span>
+                </div>
+            </div>
+            <div class="stat-card progress">
+                <div class="stat-icon">🔵</div>
+                <div class="stat-content">
+                    <span class="stat-number" id="progressCount">0</span>
+                    <span class="stat-label">قيد المعالجة</span>
+                </div>
+            </div>
+            <div class="stat-card resolved">
+                <div class="stat-icon">🟢</div>
+                <div class="stat-content">
+                    <span class="stat-number" id="resolvedCount">0</span>
+                    <span class="stat-label">تم الحل</span>
+                </div>
+            </div>
+            <div class="stat-card closed">
+                <div class="stat-icon">⚫</div>
+                <div class="stat-content">
+                    <span class="stat-number" id="closedCount">0</span>
+                    <span class="stat-label">مغلقة</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar">
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">الكل</button>
+                <button class="filter-btn" data-filter="open">مفتوحة</button>
+                <button class="filter-btn" data-filter="progress">قيد المعالجة</button>
+                <button class="filter-btn" data-filter="resolved">تم الحل</button>
+                <button class="filter-btn" data-filter="closed">مغلقة</button>
+                <button class="filter-btn" data-filter="unassigned">غير مستلمة</button>
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 ابحث بالعنوان أو اسم اللاعب...">
+            </div>
+        </div>
+
+        <!-- Tickets Table -->
+        <div class="tickets-table-wrapper">
+            <table class="tickets-table" id="ticketsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>العنوان</th>
+                        <th>اللاعب</th>
+                        <th>القسم</th>
+                        <th>الأولوية</th>
+                        <th>الحالة</th>
+                        <th>الإداري</th>
+                        <th>التاريخ</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="ticketsBody">
+                    <tr>
+                        <td colspan="9" class="loading-cell">
+                            <div class="spinner-large"></div>
+                            <p>جاري تحميل التذاكر...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">📭</div>
+            <h3>لا توجد تذاكر</h3>
+        </div>
+    </div>
+
+    <!-- Status Change Modal -->
+    <div class="modal-overlay" id="statusModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>تغيير حالة التذكرة</h3>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="modalTicketId">
+                <div class="status-options">
+                    <button class="status-btn open" data-status="open">🟡 مفتوحة</button>
+                    <button class="status-btn progress" data-status="progress">🔵 قيد المعالجة</button>
+                    <button class="status-btn resolved" data-status="resolved">🟢 تم الحل</button>
+                    <button class="status-btn closed" data-status="closed">⚫ مغلقة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // تحميل التذاكر
+        async function loadTickets(filter) {
+            filter = filter || 'all';
+            var ticketsBody = document.getElementById('ticketsBody');
+            var emptyState = document.getElementById('emptyState');
+
+            try {
+                var response = await fetch('../api/admin/tickets-info.php?filter=' + filter);
+                var data = await response.json();
+
+                if (data.success) {
+                    // تحديث الإحصائيات
+                    if (data.stats) {
+                        document.getElementById('totalCount').textContent = data.stats.total || 0;
+                        document.getElementById('openCount').textContent = data.stats.open || 0;
+                        document.getElementById('progressCount').textContent = data.stats.progress || 0;
+                        document.getElementById('resolvedCount').textContent = data.stats.resolved || 0;
+                        document.getElementById('closedCount').textContent = data.stats.closed || 0;
+                    }
+
+                    // اسم الإداري
+                    if (data.admin_name) {
+                        document.getElementById('adminName').textContent = '🛡️ ' + data.admin_name;
+                    }
+
+                    if (data.tickets && data.tickets.length > 0) {
+                        emptyState.style.display = 'none';
+                        var html = '';
+                        for (var i = 0; i < data.tickets.length; i++) {
+                            html += createTicketRow(data.tickets[i]);
+                        }
+                        ticketsBody.innerHTML = html;
+                    } else {
+                        ticketsBody.innerHTML = '';
+                        emptyState.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                ticketsBody.innerHTML = '<tr><td colspan="9" class="error-cell">❌ حدث خطأ في تحميل التذاكر</td></tr>';
+            }
+        }
+
+        // إنشاء صف تذكرة
+        function createTicketRow(ticket) {
+            var statusClass = 'status-' + ticket.status;
+            var statusText = getStatusText(ticket.status);
+            var priorityClass = 'priority-tag ' + ticket.priority;
+            var priorityText = getPriorityText(ticket.priority);
+            var categoryText = getCategoryText(ticket.category);
+            var adminText = ticket.admin_name ? ticket.admin_name : '<span class="unassigned">غير مستلمة</span>';
+            var assignBtn = !ticket.assigned_admin_id 
+                ? '<button class="action-btn assign" onclick="assignTicket(' + ticket.id + ')">📥 استلام</button>' 
+                : '';
+
+            return '<tr>' +
+                '<td class="id-cell">' + ticket.id + '</td>' +
+                '<td class="title-cell"><a href="../pages/ticket-details.html?id=' + ticket.id + '">' + ticket.title + '</a></td>' +
+                '<td>' + (ticket.player_name || 'غير معروف') + '</td>' +
+                '<td>' + categoryText + '</td>' +
+                '<td><span class="' + priorityClass + '">' + priorityText + '</span></td>' +
+                '<td><span class="badge ' + statusClass + '">' + statusText + '</span></td>' +
+                '<td>' + adminText + '</td>' +
+                '<td class="date-cell">' + formatDate(ticket.created_at) + '</td>' +
+                '<td class="actions-cell">' +
+                    assignBtn +
+                    '<button class="action-btn status" onclick="openStatusModal(' + ticket.id + ')">📝 الحالة</button>' +
+                    '<a href="../pages/ticket-details.html?id=' + ticket.id + '" class="action-btn view">💬 عرض</a>' +
+                '</td>' +
+            '</tr>';
+        }
+
+        // استلام تذكرة
+        async function assignTicket(ticketId) {
+            if (!confirm('هل تريد استلام هذه التذكرة؟')) return;
+
+            try {
+                var formData = new FormData();
+                formData.append('ticket_id', ticketId);
+
+                var response = await fetch('../api/admin/assign.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                var data = await response.json();
+
+                if (data.success) {
+                    alert('✅ تم استلام التذكرة');
+                    loadTickets();
+                } else {
+                    alert('❌ حدث خطأ');
+                }
+            } catch (error) {
+                alert('❌ حدث خطأ في الاتصال');
+            }
+        }
+
+        // فتح modal تغيير الحالة
+        function openStatusModal(ticketId) {
+            document.getElementById('modalTicketId').value = ticketId;
+            document.getElementById('statusModal').style.display = 'flex';
+        }
+
+        // إغلاق modal
+        document.getElementById('modalClose').addEventListener('click', function() {
+            document.getElementById('statusModal').style.display = 'none';
+        });
+
+        document.getElementById('statusModal').addEventListener('click', function(e) {
+            if (e.target === this) this.style.display = 'none';
+        });
+
+        // تغيير الحالة
+        var statusBtns = document.querySelectorAll('.status-btn');
+        for (var i = 0; i < statusBtns.length; i++) {
+            statusBtns[i].addEventListener('click', async function() {
+                var ticketId = document.getElementById('modalTicketId').value;
+                var newStatus = this.getAttribute('data-status');
+
+                try {
+                    var formData = new FormData();
+                    formData.append('ticket_id', ticketId);
+                    formData.append('status', newStatus);
+
+                    var response = await fetch('../api/admin/update-status.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    var data = await response.json();
+
+                    if (data.success) {
+                        document.getElementById('statusModal').style.display = 'none';
+                        loadTickets();
+                    } else {
+                        alert('❌ حدث خطأ');
+                    }
+                } catch (error) {
+                    alert('❌ حدث خطأ في الاتصال');
+                }
+            });
+        }
+
+        // البحث
+        document.getElementById('searchInput').addEventListener('input', function() {
+            var searchText = this.value.toLowerCase();
+            var rows = document.querySelectorAll('#ticketsBody tr');
+            for (var i = 0; i < rows.length; i++) {
+                var text = rows[i].textContent.toLowerCase();
+                rows[i].style.display = text.includes(searchText) ? '' : 'none';
+            }
+        });
+
+        // Filter buttons
+        var filterBtns = document.querySelectorAll('.filter-btn');
+        for (var i = 0; i < filterBtns.length; i++) {
+            filterBtns[i].addEventListener('click', function() {
+                for (var j = 0; j < filterBtns.length; j++) {
+                    filterBtns[j].classList.remove('active');
+                }
+                this.classList.add('active');
+                loadTickets(this.getAttribute('data-filter'));
+            });
+        }
+
+        // Helper functions
+        function getStatusText(status) {
+            var statuses = {
+                'open': '🟡 مفتوحة',
+                'progress': '🔵 قيد المعالجة',
+                'resolved': '🟢 تم الحل',
+                'closed': '⚫ مغلقة'
+            };
+            return statuses[status] || status;
+        }
+
+        function getPriorityText(priority) {
+            var priorities = { 'low': 'عادي', 'medium': 'مهم', 'high': 'عاجل' };
+            return priorities[priority] || priority;
+        }
+
+        function getCategoryText(category) {
+            var categories = {
+                'technical': '🔧 تقني', 'ban': '🚫 باند', 'recovery': '🔑 استرجاع',
+                'complaint': '📢 شكوى', 'bug': '🐛 Bug', 'suggestion': '💡 اقتراح', 'other': '📌 أخرى'
+            };
+            return categories[category] || category;
+        }
+
+        function formatDate(dateStr) {
+            var date = new Date(dateStr);
+            var day = date.getDate();
+            var month = date.getMonth() + 1;
+            var year = date.getFullYear();
+            var hours = date.getHours();
+            var minutes = date.getMinutes();
+            if (minutes < 10) minutes = '0' + minutes;
+            return day + '/' + month + '/' + year + ' - ' + hours + ':' + minutes;
+        }
+
+        // تحميل التذاكر
+        loadTickets();
+    </script>
+</body>
+</html>

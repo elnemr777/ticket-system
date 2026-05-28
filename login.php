@@ -34,9 +34,9 @@
             $_SESSION['logged_in'] = true;
 
             if ($role == 'admin') {
-                header("Location: pages/admin-dashboard.html");
+                header("Location: admin/admin-panel.html");
             } else {
-                header("Location: pages/my-tickets.html");
+                header("Location: pages/main.html");
             }
             exit();
         } else {
@@ -49,9 +49,6 @@
     }
     }
 ?>
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<!-- باقي HTML هنا -->
 
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">

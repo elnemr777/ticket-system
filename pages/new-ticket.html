@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تذكرة جديدة - MTA Support</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/new-ticket.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <a href="main.html" class="logo-link">
+                    <span class="logo-icon">🎮</span>
+                    <h1>MTA Support</h1>
+                </a>
+            </div>
+            <div class="header-actions">
+                <a href="main.html" class="nav-btn">الرئيسية</a>
+                <a href="my-tickets.html" class="nav-btn">تذاكري</a>
+                <a href="../auth/logout.php" class="nav-btn logout">خروج</a>
+            </div>
+        </header>
+
+        <!-- Page Title -->
+        <div class="page-title">
+            <h2>📝 تذكرة دعم جديدة</h2>
+            <p>املأ البيانات التالية وسيتم الرد عليك في أقرب وقت</p>
+        </div>
+
+        <!-- Ticket Form -->
+        <form class="ticket-form" id="ticketForm" method="POST" action="../api/tickets/create.php" enctype="multipart/form-data">
+
+            <!-- القسم -->
+            <div class="form-group">
+                <label><span class="required">*</span> القسم</label>
+                <div class="select-wrapper">
+                    <select name="category" required>
+                        <option value="">اختر القسم...</option>
+                        <option value="technical">🔧 مشكلة تقنية</option>
+                        <option value="ban">🚫 طلب فك باند</option>
+                        <option value="recovery">🔑 استرجاع حساب</option>
+                        <option value="complaint">📢 شكوى على لاعب</option>
+                        <option value="bug">🐛 بلاغ عن Bug</option>
+                        <option value="suggestion">💡 اقتراح</option>
+                        <option value="other">📌 أخرى</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- العنوان -->
+            <div class="form-group">
+                <label><span class="required">*</span> عنوان التذكرة</label>
+                <input type="text" name="title" placeholder="مثال: مشكلة في تسجيل الدخول" required>
+            </div>
+
+            <!-- الأولوية -->
+            <div class="form-group">
+                <label><span class="required">*</span> الأولوية</label>
+                <div class="priority-options">
+                    <div class="priority-option">
+                        <input type="radio" name="priority" value="low" id="p-low" checked>
+                        <label for="p-low" class="priority-label low">
+                            <span class="priority-dot"></span>
+                            عادي
+                        </label>
+                    </div>
+                    <div class="priority-option">
+                        <input type="radio" name="priority" value="medium" id="p-medium">
+                        <label for="p-medium" class="priority-label medium">
+                            <span class="priority-dot"></span>
+                            مهم
+                        </label>
+                    </div>
+                    <div class="priority-option">
+                        <input type="radio" name="priority" value="high" id="p-high">
+                        <label for="p-high" class="priority-label high">
+                            <span class="priority-dot"></span>
+                            عاجل
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- التفاصيل -->
+            <div class="form-group">
+                <label><span class="required">*</span> التفاصيل</label>
+                <textarea name="description" placeholder="اشرح المشكلة بالتفصيل... كلما كانت التفاصيل أوضح، كان الحل أسرع" required></textarea>
+                <div class="char-count"><span id="charCount">0</span> / 2000</div>
+            </div>
+
+            <!-- المرفقات -->
+            <div class="form-group">
+                <label>📎 إرفاق صور أو فيديوهات <span class="optional">(اختياري)</span></label>
+                <div class="file-upload" id="fileUpload">
+                    <input type="file" name="attachments[]" id="fileInput" multiple accept="image/*,video/*">
+                    <div class="upload-content">
+                        <div class="upload-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                        </div>
+                        <p class="upload-text">اضغط هنا أو اسحب الملفات</p>
+                        <p class="upload-hint">PNG, JPG, GIF, MP4 - الحد الأقصى 10 ميجا لكل ملف</p>
+                    </div>
+                </div>
+                <div class="file-list" id="fileList"></div>
+            </div>
+
+            <!-- زرار الإرسال -->
+            <button name="send" type="submit" class="submit-btn" id="submitBtn">
+                <span class="btn-text" >إرسال التذكرة</span>
+                <span class="btn-loading" style="display: none;">
+                    <span class="spinner"></span>
+                    جاري الإرسال...
+                </span>
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // عداد الحروف
+        const textarea = document.querySelector('textarea[name="description"]');
+        const charCount = document.getElementById('charCount');
+
+        textarea.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+            if (this.value.length > 2000) {
+                charCount.parentElement.classList.add('over-limit');
+                this.value = this.value.substring(0, 2000);
+                charCount.textContent = 2000;
+            } else {
+                charCount.parentElement.classList.remove('over-limit');
+            }
+        });
+
+        // عرض الملفات المختارة
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const fileUpload = document.getElementById('fileUpload');
+
+        fileInput.addEventListener('change', function() {
+            fileList.innerHTML = '';
+            Array.from(this.files).forEach(function(file) {
+                const size = (file.size / 1024 / 1024).toFixed(2);
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = '<span class="file-name">' + file.name + '</span><span class="file-size">' + size + ' MB</span>';
+                fileList.appendChild(fileItem);
+            });
+        });
+
+        // Drag and Drop
+        fileUpload.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        fileUpload.addEventListener('dragleave', function() {
+            this.classList.remove('dragover');
+        });
+
+        fileUpload.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            fileInput.files = e.dataTransfer.files;
+            fileInput.dispatchEvent(new Event('change'));
+        });
+
+    </script>
+</body>
+</html>

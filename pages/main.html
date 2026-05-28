@@ -30,7 +30,7 @@
         <!-- Welcome Section -->
         <section class="welcome-section">
             <div class="welcome-content">
-                <h2 id="welcomeText">مرحباً! 👋</h2>
+                <h2 id="welcomeText">مرحباً! </h2>
                 <p>كيف يمكننا مساعدتك اليوم؟</p>
             </div>
             <div class="stats-mini">
@@ -65,7 +65,7 @@
                 <div class="action-arrow">←</div>
             </a>
 
-            <a href="admin-dashboard.html" class="action-card admin" id="adminCard" style="display: none;">
+            <a href="../admin/admin-panel.html" class="action-card admin" id="adminCard" style="display: none;">
                 <div class="action-icon">⚙️</div>
                 <div class="action-content">
                     <h3>لوحة الإدارة</h3>
@@ -110,7 +110,7 @@
         // جلب بيانات المستخدم من API
         async function loadUserData() {
             try {
-                const response = await fetch('../api/user/get-info.php');
+                const response = await fetch('../api/user/get-info.php') 
                 const data = await response.json();
 
                 if (data.success) {
@@ -118,7 +118,7 @@
 
                     // تحديث الاسم
                     document.getElementById('userName').textContent = user.username;
-                    document.getElementById('welcomeText').textContent = `مرحباً، ${user.username}! 👋`;
+                    document.getElementById('welcomeText').textContent = `مرحباً، ${user.username}! `;
 
                     // تحديث نوع تسجيل الدخول
                     if (user.discord_id) {

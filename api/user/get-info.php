@@ -1,5 +1,5 @@
 <?php
-sesion_start();
+session_start();
 header('Content-Type: application/json');
 
 if (! isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
@@ -7,7 +7,7 @@ if (! isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit();
 }
 
-include __DIR__ . "/../config/site.php";
+include __DIR__ . "/../../config/site.php";
 
 $user_id = $_SESSION['user_id'];
 
@@ -16,9 +16,22 @@ $query = mysqli_query($site_conn, "SELECT * FROM users WHERE id='$user_id'");
 $user  = mysqli_fetch_assoc($query);
 // total tickets
 $totalT_query = mysqli_query($site_conn,
-    "SELECT COUNT(*) as count FROM tickets WHERE id='$user_id'");
+    "SELECT COUNT(*) as count FROM tickets WHERE user_id='$user_id'");
 $total_tickets = mysqli_fetch_assoc($totalT_query)['count'];
 // total open tickets
 $openT_query = mysqli_query($site_conn,
     "SELECT COUNT(*) as count FROM tickets WHERE user_id='$user_id' AND status IN ('open','progress') "
 );
+$open_tickets = mysqli_fetch_assoc($openT_query)['count'];
+
+echo json_encode([
+    'success' => true,
+    'user'    => [
+        'username'       => $user['discord_username'] ?? $user['ingame_username'],
+        'discord_id'     => $user['discord_id'] ?? null,
+        'discord_avatar' => $user['discord_avatar'] ?? null,
+        'role'           => $user['role'],
+        'total_tickets'  => $total_tickets,
+        'open_tickets'   => $open_tickets,
+    ],
+]);

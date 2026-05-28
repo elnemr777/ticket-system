@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تذاكري - MTA Support</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/my-tickets.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <a href="main.html" class="logo-link">
+                    <span class="logo-icon">🎮</span>
+                    <h1>MTA Support</h1>
+                </a>
+            </div>
+            <div class="header-actions">
+                <a href="main.html" class="nav-btn">الرئيسية</a>
+                <a href="new-ticket.html" class="nav-btn new-ticket-btn">+ تذكرة جديدة</a>
+                <a href="../auth/logout.php" class="nav-btn logout">خروج</a>
+            </div>
+        </header>
+
+        <!-- Page Title -->
+        <div class="page-title">
+            <h2> تذاكري</h2>
+            <p>تابع حالة تذاكرك السابقة وردود الإدارة</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number" id="totalCount">0</span>
+                <span class="stat-label">الكل</span>
+            </div>
+            <div class="stat-card open">
+                <span class="stat-number" id="openCount">0</span>
+                <span class="stat-label">مفتوحة</span>
+            </div>
+            <div class="stat-card progress">
+                <span class="stat-number" id="progressCount">0</span>
+                <span class="stat-label">قيد المعالجة</span>
+            </div>
+            <div class="stat-card closed">
+                <span class="stat-number" id="closedCount">0</span>
+                <span class="stat-label">مغلقة</span>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">الكل</button>
+            <button class="filter-btn" data-filter="open">مفتوحة</button>
+            <button class="filter-btn" data-filter="progress">قيد المعالجة</button>
+            <button class="filter-btn" data-filter="resolved">تم الحل</button>
+            <button class="filter-btn" data-filter="closed">مغلقة</button>
+        </div>
+
+        <!-- Tickets List -->
+        <div class="tickets-list" id="ticketsList">
+            <div class="loading-state" id="loadingState">
+                <div class="spinner-large"></div>
+                <p>جاري تحميل التذاكر...</p>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">📭</div>
+            <h3>لا توجد تذاكر</h3>
+            <p>لم تقم بفتح أي تذكرة بعد</p>
+            <a href="new-ticket.html" class="empty-btn">فتح تذكرة جديدة</a>
+        </div>
+    </div>
+
+    <script>
+        // جلب التذاكر من API
+        async function loadTickets(filter) {
+            filter = filter || 'all';
+            var ticketsList = document.getElementById('ticketsList');
+            var emptyState = document.getElementById('emptyState');
+            var loadingState = document.getElementById('loadingState');
+
+            try {
+                var response = await fetch('../api/tickets/my-tickets.php?filter=' + filter);
+                var data = await response.json();
+
+                if (data.success && data.tickets.length > 0) {
+                    if (loadingState) loadingState.style.display = 'none';
+if (emptyState) emptyState.style.display = 'none';
+                    
+                    var html = '';
+                    for (var i = 0; i < data.tickets.length; i++) {
+                        var ticket = data.tickets[i];
+                        html += createTicketCard(ticket);
+                    }
+                    ticketsList.innerHTML = html;
+
+                    // تحديث الإحصائيات
+                    if (data.stats) {
+                        document.getElementById('totalCount').textContent = data.stats.total || 0;
+                        document.getElementById('openCount').textContent = data.stats.open || 0;
+                        document.getElementById('progressCount').textContent = data.stats.progress || 0;
+                        document.getElementById('closedCount').textContent = data.stats.closed || 0;
+                    }
+
+                } else {
+    if (loadingState) loadingState.style.display = 'none';
+    ticketsList.innerHTML = '';
+    emptyState.style.display = 'block';
+}
+            } catch (error) {
+    console.error('Error:', error);
+    if (loadingState) loadingState.style.display = 'none';
+    ticketsList.innerHTML = '<div class="error-state">❌ حدث خطأ في تحميل التذاكر</div>';
+}
+        }
+
+        // إنشاء كارت التذكرة
+        function createTicketCard(ticket) {
+            var statusClass = 'status-' + ticket.status;
+            var statusText = getStatusText(ticket.status);
+            var priorityClass = 'priority-' + ticket.priority;
+            var priorityText = getPriorityText(ticket.priority);
+            var categoryText = getCategoryText(ticket.category);
+
+            return '<a href="ticket-details.html?id=' + ticket.id + '" class="ticket-card">' +
+                '<div class="ticket-top">' +
+                    '<span class="ticket-id">#' + ticket.id + '</span>' +
+                    '<span class="badge ' + statusClass + '">' + statusText + '</span>' +
+                '</div>' +
+                '<h3 class="ticket-title">' + ticket.title + '</h3>' +
+                '<p class="ticket-desc">' + ticket.description.substring(0, 100) + '...</p>' +
+                '<div class="ticket-bottom">' +
+                    '<div class="ticket-tags">' +
+                        '<span class="tag">' + categoryText + '</span>' +
+                        '<span class="tag ' + priorityClass + '">' + priorityText + '</span>' +
+                    '</div>' +
+                    '<span class="ticket-date">' + formatDate(ticket.created_at) + '</span>' +
+                '</div>' +
+                '<div class="ticket-admin">' +
+                    (ticket.admin_name ? '👤 ' + ticket.admin_name : '⏳ لم يتم التعيين بعد') +
+                '</div>' +
+            '</a>';
+        }
+
+        function getStatusText(status) {
+            var statuses = {
+                'open': '🟡 مفتوحة',
+                'progress': '🔵 قيد المعالجة',
+                'resolved': '🟢 تم الحل',
+                'closed': '⚫ مغلقة'
+            };
+            return statuses[status] || status;
+        }
+
+        function getPriorityText(priority) {
+            var priorities = {
+                'low': 'عادي',
+                'medium': 'مهم',
+                'high': 'عاجل'
+            };
+            return priorities[priority] || priority;
+        }
+
+        function getCategoryText(category) {
+            var categories = {
+                'technical': '🔧 تقني',
+                'ban': '🚫 باند',
+                'recovery': '🔑 استرجاع',
+                'complaint': '📢 شكوى',
+                'bug': '🐛 Bug',
+                'suggestion': '💡 اقتراح',
+                'other': '📌 أخرى'
+            };
+            return categories[category] || category;
+        }
+
+        function formatDate(dateStr) {
+            var date = new Date(dateStr);
+            var day = date.getDate();
+            var month = date.getMonth() + 1;
+            var year = date.getFullYear();
+            var hours = date.getHours();
+            var minutes = date.getMinutes();
+            if (minutes < 10) minutes = '0' + minutes;
+            return day + '/' + month + '/' + year + ' - ' + hours + ':' + minutes;
+        }
+
+        // Filter buttons
+        var filterBtns = document.querySelectorAll('.filter-btn');
+        for (var i = 0; i < filterBtns.length; i++) {
+            filterBtns[i].addEventListener('click', function() {
+                for (var j = 0; j < filterBtns.length; j++) {
+                    filterBtns[j].classList.remove('active');
+                }
+                this.classList.add('active');
+                loadTickets(this.getAttribute('data-filter'));
+            });
+        }
+
+        // تحميل التذاكر عند فتح الصفحة
+        loadTickets();
+    </script>
+</body>
+</html>
